@@ -23,7 +23,7 @@
 
       <div class="bg-grey-1 q-py-sm text-black text-center">
         <p class="text-xs">
-          &copy; {{ currentYear }}. Developed with ❤️ by SmartSoft
+          &copy; {{ currentYear }}. Developed by IlungaTheOmniDev
         </p>
       </div>
     </q-page-container>
