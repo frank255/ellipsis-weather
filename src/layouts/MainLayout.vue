@@ -5,7 +5,7 @@
         <q-img
           alt="Ellipsis logo"
           src="~assets/elipsis.png"
-          :style="$q.platform.is.desktop ? 'width: 70px;' : 'width: 90%'"
+          :style="$q.platform.is.desktop ? 'width: 90px;' : 'width: 70px'"
         />
         <q-toolbar-title>Weather-App </q-toolbar-title>
         <q-toggle
@@ -36,18 +36,13 @@ import { useQuasar } from "quasar";
 import { useRoute } from "vue-router";
 import { api } from "src/boot/axios";
 import { useRouter } from "vue-router";
+
 // import { useAuthStore } from "stores/auth";
 const route = useRoute();
-let showDialog = ref(false);
 const dark_mode = ref(false);
 const $q = useQuasar();
-const isPwd = ref(true);
-const router = useRouter();
-const old_password = ref("");
-const new_password = ref("");
-const userName = sessionStorage.getItem("username");
-const user_id = sessionStorage.getItem("user_id");
-const jobTitle = sessionStorage.getItem("job_title");
+
+
 // const user = JSON.parse(userString);
 // const role = sessionStorage.getItem("role");
 const leftDrawerOpen = ref(false);
