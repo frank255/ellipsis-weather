@@ -1,7 +1,7 @@
 # ellipsis-weather (ellipsis-weather)
 
-A simple web for showing weather informations of a specific location
-live demo link https://ellipsis-weather.vercel.app/
+A simple web for showing weather informations of a specific location.
+live demo: https://ellipsis-weather.vercel.app/
 
 ## Install the dependencies
 ```bash
