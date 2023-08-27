@@ -134,6 +134,9 @@ const chartOptions = computed(() => {
     chart: {
       height: 350,
       type: "line",
+      zoom: {
+        enabled: true,
+      },
       dropShadow: {
         enabled: true,
         color: "#000",
@@ -278,7 +281,6 @@ const geoInfo = async () => {
     country.value = data.country;
     long.value = data.longitude;
     lat.value = data.latitude;
-
     fetchWeatherData();
   } catch (error) {
     $q.notify({
@@ -350,6 +352,8 @@ const fetchWeatherData = async () => {
         },
       }
     );
+    series.value[0].data = [];
+    time.value = [];
     const forecasthourly = await api.get(
       "https://api.weatherbit.io/v2.0/forecast/hourly",
       {
