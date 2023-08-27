@@ -73,7 +73,7 @@
             5 days forecast
           </p>
         </q-card-section>
-        <q-card class="q-pa-md" flat>
+        <q-card class="q-pa-sm" flat>
           <q-table
             :rows="rows"
             :columns="columns"
@@ -81,43 +81,33 @@
             dense
             flat
             :hide-pagination="true"
-          />
-        </q-card>
-        <!-- <q-card-section>
-          <q-list>
-            <q-item>
-              <q-item-section> 2023-08-27 </q-item-section>
-              <q-item-section>
+          >
+            <template #body-cell-icon="props">
+              <q-td>
                 <img
-                  :src="weatherIconUrl"
+                  :src="forecastWeatherIconUrl(props.row.weather.icon)"
                   alt="Weather Icon"
                   style="width: 50px"
                 />
-              </q-item-section>
-              <q-item-section>
-                {{ temperatureCelsius }}°C/{{ temperatureFahrenheit }}°F
-              </q-item-section>
-              <q-item-section>
-                {{ desc }}
-              </q-item-section>
-              <q-item-section>
-                <q-icon size="20px" name="mdi-thermometer-high" />
-                {{ temperatureCelsius }}°C/{{ temperatureFahrenheit }}°F
-              </q-item-section>
-              <q-item-section>
-                <q-icon size="20px" name="mdi-thermometer-low" />
-                {{ temperatureCelsius }}°C/{{ temperatureFahrenheit }}°F
-              </q-item-section>
-            </q-item>
-          </q-list>
-        </q-card-section> -->
+              </q-td>
+            </template>
+          </q-table>
+          <div class="q-mt-lg">
+            <apexchart
+              type="line"
+              height="350"
+              :options="chartOptions"
+              :series="series"
+            />
+          </div>
+        </q-card>
       </q-card>
     </div>
   </q-page>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import { api } from "src/boot/axios";
 import { useQuasar } from "quasar";
 const $q = useQuasar();
@@ -131,10 +121,83 @@ const icon = ref(""); // Replace with your actual dynamic value
 const airQuality = ref("");
 const humidity = ref("");
 const wind = ref("");
+const time = ref([]);
+const series = ref([
+  {
+    name: "temp",
+    data: [],
+  },
+]);
+
+const chartOptions = computed(() => {
+  return {
+    chart: {
+      height: 350,
+      type: "line",
+      dropShadow: {
+        enabled: true,
+        color: "#000",
+        top: 18,
+        left: 7,
+        blur: 10,
+        opacity: 0.2,
+      },
+      toolbar: {
+        show: false,
+      },
+    },
+    dataLabels: {
+      enabled: true,
+    },
+    stroke: {
+      curve: "straight",
+    },
+    title: {
+      text: "Hourly Temperature Forecast",
+      align: "center",
+    },
+    grid: {
+      borderColor: "#e7e7e7",
+      row: {
+        colors: ["#f3f3f3", "transparent"], // takes an array which will be repeated on columns
+        opacity: 0.5,
+      },
+    },
+    markers: {
+      size: 1,
+    },
+    xaxis: {
+      categories: time.value,
+      title: {
+        text: "Hours",
+      },
+    },
+    yaxis: {
+      title: {
+        text: "Temperature",
+      },
+      min: 5,
+      max: 40,
+    },
+    legend: {
+      position: "top",
+      horizontalAlign: "right",
+      floating: true,
+      offsetY: -25,
+      offsetX: -5,
+    },
+  };
+});
+
 const weatherIconUrl = computed(() => {
   const modifiedIcon = ref(icon.value.substring(1));
   // Construct the complete URL by concatenating the dynamic part
   return `https://openweathermap.org/img/wn/${modifiedIcon.value}@2x.png`;
+});
+const forecastWeatherIconUrl = computed(() => (icon) => {
+  const modifiedIcon = icon.substring(1);
+  // Construct the complete URL by concatenating the dynamic part
+  return `https://openweathermap.org/img/wn/${modifiedIcon}@2x.png`;
 });
 const columns = [
   {
@@ -145,7 +208,7 @@ const columns = [
   },
   {
     name: "icon",
-    label: "Icon",
+    label: "",
     align: "left",
     field: (row) => row.weather.icon,
   },
@@ -157,19 +220,19 @@ const columns = [
   },
   {
     name: "desc",
-    label: "Desc",
+    label: "Description",
     align: "left",
     field: (row) => row.weather.description,
   },
   {
     name: "high-temp",
-    label: "High-temp",
+    label: "High-temp°C",
     align: "left",
     field: (row) => row.high_temp,
   },
   {
     name: "low-temp",
-    label: "Low-temp",
+    label: "Low-temp°C",
     align: "left",
     field: (row) => row.low_temp,
   },
@@ -277,8 +340,18 @@ const fetchWeatherData = async () => {
         key: apiKey,
       },
     });
-    const forecast = await api.get(
+    const forecastdaily = await api.get(
       "https://api.weatherbit.io/v2.0/forecast/daily",
+      {
+        params: {
+          lat: lat.value,
+          lon: long.value,
+          key: apiKey,
+        },
+      }
+    );
+    const forecasthourly = await api.get(
+      "https://api.weatherbit.io/v2.0/forecast/hourly",
       {
         params: {
           lat: lat.value,
@@ -295,8 +368,24 @@ const fetchWeatherData = async () => {
       response.data.data[0].wind_cdir + response.data.data[0].wind_spd;
     icon.value = response.data.data[0].weather.icon;
     desc.value = response.data.data[0].weather.description;
-    rows.value = forecast.data.data.slice(0, 5);
-    console.log(rows.value);
+    rows.value = forecastdaily.data.data.slice(0, 5);
+
+    const today = new Date();
+    const todayDate = today.toISOString().split("T")[0]; // Get today's date in yyyy-mm-dd format
+
+    const filteredTemp = forecasthourly.data.data.filter((item) => {
+      const itemDate = item.timestamp_local.split("T")[0]; // Extract date part from timestamp_local
+      return itemDate === todayDate; // Compare with today's date
+    });
+    const chartDatas = filteredTemp.map((item) => item.temp);
+    const chartLabels = filteredTemp.map(
+      (item) => item.timestamp_local.split("T")[1]
+    );
+    series.value[0].data.push(...chartDatas);
+    // chartOptions.value.xaxis.categories.push(...chartLabels);
+    time.value = chartLabels;
+
+    console.log(time.value);
   } catch (error) {
     console.error("Error:", error);
   }
